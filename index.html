@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FUTIX — Basic AI Interface</title>
+<style>
+:root{--bg:#f6f8fc;--panel:#fff;--text:#172033;--muted:#778198;--line:#e4e9f2;--accent:#5968e8;--accent-soft:#eef0ff;--shadow:0 14px 40px #24345b0d}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;transition:background .25s}
+button,input,textarea,select{font:inherit}button{cursor:pointer}
+body[data-mode="translate"]{--accent:#4285f4;--accent-soft:#eaf2ff}
+body[data-mode="summarize"]{--accent:#d97706;--accent-soft:#fff3df}
+body[data-mode="solve"]{--accent:#7c5ce7;--accent-soft:#f0ebff}
+body[data-mode="study"]{--accent:#15966a;--accent-soft:#e5f8ef}
+.app{min-height:100vh;display:flex;flex-direction:column}
+.topbar{height:72px;background:#ffffffdf;backdrop-filter:blur(16px);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 clamp(16px,4vw,54px);position:sticky;top:0;z-index:5}
+.brand{display:flex;align-items:center;gap:11px;font-weight:850;font-size:22px;letter-spacing:.4px}.brand-mark{height:39px;width:39px;border-radius:13px;background:linear-gradient(135deg,#5968e8,#8b6ef0);display:grid;place-items:center;color:#fff;font-size:21px}
+.top-actions{display:flex;align-items:center;gap:9px}.select,.ghost{border:1px solid var(--line);background:#fff;border-radius:11px;padding:9px 12px;color:var(--text)}.ghost{min-width:40px}
+main{width:min(1080px,calc(100% - 32px));margin:0 auto;flex:1;padding:34px 0 44px}
+.hero{text-align:center;margin:16px auto 28px}.hero h1{font-size:clamp(28px,4vw,40px);line-height:1.15;letter-spacing:-1px;margin:0 0 10px}.hero p{color:var(--muted);margin:0}
+.mode-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:0 auto 25px}
+.mode-card{border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:14px 10px;text-align:center;color:var(--text);transition:.18s;min-height:112px}
+.mode-card:hover{transform:translateY(-2px);box-shadow:var(--shadow)}.mode-card.active{border:2px solid var(--accent);background:var(--accent-soft);padding:13px 9px;box-shadow:0 5px 18px #263b5b0a}
+.mode-icon{width:37px;height:37px;border-radius:12px;display:grid;place-items:center;margin:0 auto 7px;background:var(--accent-soft);font-size:20px}.mode-card strong{display:block;font-size:14px}.mode-card small{display:block;color:var(--muted);font-size:11px;margin-top:3px}
+.workspace{background:var(--panel);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);overflow:hidden;min-height:390px}
+.workspace-head{padding:19px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px}.workspace-title{font-size:17px;font-weight:800;display:flex;align-items:center;gap:10px}.pill{font-size:11px;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:5px 9px;font-weight:750}
+.mode-view{padding:22px}.hidden{display:none!important}
+textarea{width:100%;resize:vertical;min-height:160px;border:1px solid var(--line);border-radius:14px;padding:15px;background:#fff;color:var(--text);outline:none;line-height:1.65}textarea:focus,input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 13%,transparent);outline:none}
+.field-label{font-size:13px;font-weight:750;display:block;margin:0 0 8px}.muted{color:var(--muted)}.actions{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:13px;flex-wrap:wrap}.btn{border:0;background:var(--accent);color:white;padding:11px 17px;border-radius:12px;font-weight:750;box-shadow:0 5px 12px color-mix(in srgb,var(--accent) 20%,transparent)}.btn:hover{filter:brightness(.97)}.btn:disabled{opacity:.5}.btn-outline{border:1px solid var(--line);background:white;color:var(--text);padding:9px 13px;border-radius:11px}.output{border:1px solid var(--line);background:#fbfcff;border-radius:14px;padding:16px;min-height:110px;white-space:pre-wrap;overflow-wrap:anywhere}.output-title{display:flex;align-items:center;justify-content:space-between;margin:18px 0 8px;font-weight:750}
+.translate-head{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;margin-bottom:12px}.lang-select{width:100%;border:1px solid var(--line);border-radius:12px;padding:12px;background:#fff}.swap{width:42px;height:42px;border:1px solid var(--line);border-radius:50%;background:white;color:var(--accent);font-size:19px}
+.translate-panels{display:grid;grid-template-columns:1fr 1fr;gap:12px}.translate-panel{position:relative}.translate-panel textarea{min-height:210px;border-radius:14px}.char-count{text-align:right;font-size:11px;color:var(--muted);margin-top:5px}
+.chat-messages{display:flex;flex-direction:column;gap:16px;min-height:180px;max-height:390px;overflow:auto;margin-bottom:18px}.empty-chat{text-align:center;color:var(--muted);padding:45px 12px}.chat-row{display:flex;gap:10px;align-items:flex-start}.chat-row.user{flex-direction:row-reverse}.chat-avatar{width:32px;height:32px;border-radius:11px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;flex-shrink:0;font-weight:800}.chat-bubble{padding:12px 15px;border-radius:15px;background:#f2f4fa;max-width:85%;white-space:pre-wrap;overflow-wrap:anywhere}.chat-row.user .chat-bubble{background:var(--accent-soft)}.chat-compose{display:flex;gap:10px;align-items:flex-end}.chat-compose textarea{min-height:55px;max-height:150px;flex:1}
+.note{font-size:12px;color:var(--muted);margin-top:15px;text-align:center}.result-steps{display:grid;gap:9px}.step{display:flex;gap:12px;padding:12px;border:1px solid var(--line);border-radius:12px;background:#fff}.step-num{flex-shrink:0;width:27px;height:27px;border-radius:9px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:800}
+body[dir="rtl"] .topbar,body[dir="rtl"] .workspace-head{direction:rtl}body[dir="rtl"] .actions{direction:rtl}body[dir="rtl"] .chat-row.user{flex-direction:row}
+@media(max-width:760px){.topbar{height:64px;padding:0 14px}.brand{font-size:19px}.topbar .select{max-width:112px}.mode-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.mode-card{min-height:98px;padding:10px 5px}.mode-card.active{padding:9px 4px}.mode-card small{font-size:10px}main{padding-top:23px}.workspace-head{padding:15px}.mode-view{padding:15px}.translate-panels{grid-template-columns:1fr}.translate-panel textarea{min-height:145px}.translate-head{gap:7px}.lang-select{padding:10px 6px;font-size:13px}.swap{width:36px;height:36px}.hero{margin-top:8px}.chat-compose{align-items:stretch}.chat-compose .btn{padding:10px}}
+@media(max-width:420px){.mode-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.mode-card:last-child{grid-column:span 2}.top-actions{gap:5px}.topbar .select{max-width:94px;padding:8px;font-size:12px}}
+dialog{border:1px solid var(--line);border-radius:18px;padding:22px;width:min(440px,calc(100% - 32px));color:var(--text);background:#fff;box-shadow:var(--shadow)}dialog::backdrop{background:#17203355}dialog h3{margin:0 0 14px}dialog select,dialog input{width:100%;border:1px solid var(--line);border-radius:11px;padding:10px 12px;margin-bottom:12px;background:#fff;color:var(--text)}dialog .row{display:flex;gap:9px;justify-content:flex-end;margin-top:6px}dialog a{color:var(--accent)}dialog .help{font-size:12px;color:var(--muted);margin:-4px 0 12px}.output strong{font-weight:800}
+</style>
+</head>
+<body data-mode="chat" dir="ltr">
+<div class="app">
+<header class="topbar">
+  <div class="brand"><div class="brand-mark">✦</div><span>FUTIX</span></div>
+  <div class="top-actions">
+    <select id="uiLang" class="select" aria-label="Interface language"><option value="en">English</option><option value="ar">العربية</option></select>
+    <button class="ghost" id="settingsBtn" title="AI settings" aria-label="AI settings">⚙</button>
+    <button class="ghost" id="resetBtn" title="Reset current tool" aria-label="Reset">↻</button>
+  </div>
+</header>
+<main>
+  <section class="hero"><h1 id="heroTitle">One simple interface. Five smart tools.</h1><p id="heroSub">Choose what you want to do — the whole workspace changes to fit your task.</p></section>
+  <nav class="mode-grid" aria-label="Choose a tool">
+    <button class="mode-card active" data-mode="chat"><span class="mode-icon">✦</span><strong data-en="AI Chat" data-ar="محادثة AI">AI Chat</strong><small data-en="Ask anything" data-ar="اسأل أي شيء">Ask anything</small></button>
+    <button class="mode-card" data-mode="translate"><span class="mode-icon">文</span><strong data-en="Translate" data-ar="ترجمة">Translate</strong><small data-en="Switch languages" data-ar="بدّل اللغات">Switch languages</small></button>
+    <button class="mode-card" data-mode="summarize"><span class="mode-icon">≡</span><strong data-en="Summarize" data-ar="تلخيص">Summarize</strong><small data-en="Keep key ideas" data-ar="أهم الأفكار فقط">Keep key ideas</small></button>
+    <button class="mode-card" data-mode="solve"><span class="mode-icon">∑</span><strong data-en="Solve" data-ar="حل">Solve</strong><small data-en="Easy steps" data-ar="خطوات سهلة">Easy steps</small></button>
+    <button class="mode-card" data-mode="study"><span class="mode-icon">▤</span><strong data-en="Study" data-ar="دراسة">Study</strong><small data-en="Learn and review" data-ar="تعلّم وراجع">Learn and review</small></button>
+  </nav>
+  <section class="workspace">
+    <div class="workspace-head"><div class="workspace-title"><span id="workspaceIcon">✦</span><span id="workspaceTitle">AI Chat</span></div><span class="pill" id="workspacePill">SIMPLE MODE</span></div>
+
+    <section class="mode-view" id="chatView">
+      <div class="chat-messages" id="chatMessages"><div class="empty-chat" id="chatEmpty">✦<br><strong>What would you like help with?</strong><br><span class="muted">Ask a question or tell FUTIX what you need.</span></div></div>
+      <div class="chat-compose"><textarea id="chatInput" rows="2" placeholder="Message FUTIX..."></textarea><button class="btn" id="chatSend">Send ↑</button></div>
+    </section>
+
+    <section class="mode-view hidden" id="translateView">
+      <div class="translate-head">
+        <select class="lang-select" id="sourceLang" aria-label="Source language"><option value="auto">Detect language</option><option value="en">English</option><option value="ar">Arabic</option><option value="fr">French</option><option value="es">Spanish</option><option value="ur">Urdu</option><option value="hi">Hindi</option><option value="de">German</option><option value="tr">Turkish</option></select>
+        <button class="swap" id="swapLang" title="Swap languages" aria-label="Swap languages">⇄</button>
+        <select class="lang-select" id="targetLang" aria-label="Target language"><option value="ar">Arabic</option><option value="en">English</option><option value="fr">French</option><option value="es">Spanish</option><option value="ur">Urdu</option><option value="hi">Hindi</option><option value="de">German</option><option value="tr">Turkish</option></select>
+      </div>
+      <div class="translate-panels">
+        <div class="translate-panel"><textarea id="translateInput" maxlength="5000" placeholder="Enter text"></textarea><div class="char-count"><span id="charCount">0</span> / 5000</div></div>
+        <div class="translate-panel"><textarea id="translateOutput" readonly placeholder="Translation appears here"></textarea><div class="char-count" id="translateStatus">Ready to translate</div></div>
+      </div>
+      <div class="actions"><span class="muted" id="translateHint">Choose languages, enter text, then translate.</span><button class="btn" id="translateBtn">Translate →</button></div>
+    </section>
+
+    <section class="mode-view hidden" id="summarizeView">
+      <label class="field-label" for="summaryInput" id="summaryLabel">Text to summarize</label><textarea id="summaryInput" placeholder="Paste your lesson, article, or notes here..."></textarea>
+      <div class="actions"><span class="muted" id="summaryHint">Get the main ideas without the extra detail.</span><button class="btn" id="summaryBtn">Summarize ✦</button></div>
+      <div class="output-title hidden" id="summaryOutputTitle">Summary <button class="btn-outline" data-copy="summaryOutput">Copy</button></div><div class="output hidden" id="summaryOutput"></div>
+    </section>
+
+    <section class="mode-view hidden" id="solveView">
+      <label class="field-label" for="solveInput" id="solveLabel">Your question</label><textarea id="solveInput" placeholder="Type your question here. Include all numbers and instructions..."></textarea>
+      <div class="actions"><span class="muted" id="solveHint">The demo can show a simple method for basic arithmetic.</span><button class="btn" id="solveBtn">Solve step by step →</button></div>
+      <div class="output-title hidden" id="solveOutputTitle">Step-by-step answer</div><div class="output hidden" id="solveOutput"></div>
+    </section>
+
+    <section class="mode-view hidden" id="studyView">
+      <label class="field-label" for="studyInput" id="studyLabel">Lesson or topic</label><textarea id="studyInput" placeholder="Paste your lesson or write a topic you want to review..."></textarea>
+      <div class="actions"><span class="muted" id="studyHint">Create a simple explanation and quick review questions.</span><button class="btn" id="studyBtn">Make study guide ✦</button></div>
+      <div class="output-title hidden" id="studyOutputTitle">Your study guide</div><div class="output hidden" id="studyOutput"></div>
+    </section>
+  </section>
+  <p class="note" id="note">Interactive preview • This standalone file does not connect to a live AI service or Google Translate.</p>
+</main>
+</div>
+<dialog id="settingsDlg">
+  <h3 id="settingsTitle">AI settings</h3>
+  <label class="field-label" id="providerLabel" for="providerSel">AI provider</label>
+  <select id="providerSel"><option value="auto" id="optAuto">Automatic (free, no key needed)</option><option value="gemini">Google Gemini (free key)</option><option value="groq">Groq (free key)</option><option value="pollinations">Pollinations (free key)</option></select>
+  <label class="field-label" id="keyLabel" for="keyInput">API key (optional)</label>
+  <input id="keyInput" type="password" autocomplete="off" placeholder="paste key here">
+  <div class="help"><span id="keyHelpText"></span><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> · <a href="https://console.groq.com/keys" target="_blank" rel="noopener">Groq</a> · <a href="https://enter.pollinations.ai" target="_blank" rel="noopener">Pollinations</a></div>
+  <div class="row"><button class="btn-outline" id="settingsClose">Close</button><button class="btn" id="settingsSave">Save</button></div>
+</dialog>
+<script>
+const $=id=>document.getElementById(id);
+let mode='chat', chatHistory=[], busy=false;
+const words={
+en:{hero:'One simple interface. Five smart tools.',sub:'Choose what you want to do — the whole workspace changes to fit your task.',titles:{chat:'AI Chat',translate:'Translate',summarize:'Summarize',solve:'Solve',study:'Study'},pill:{chat:'SIMPLE MODE',translate:'LANGUAGE TOOL',summarize:'QUICK SUMMARY',solve:'STEP BY STEP',study:'STUDY MODE'},empty:'✦<br><strong>What would you like help with?</strong><br><span class="muted">Ask a question or tell FUTIX what you need.</span>',chatPlaceholder:'Message FUTIX...',send:'Send ↑',source:'Detect language',enter:'Enter text',translation:'Translation appears here',ready:'Ready to translate',translateHint:'Choose languages, enter text, then translate.',translateBtn:'Translate →',summaryLabel:'Text to summarize',summaryPlaceholder:'Paste your lesson, article, or notes here...',summaryHint:'Get the main ideas without the extra detail.',summaryBtn:'Summarize ✦',summaryTitle:'Summary',solveLabel:'Your question',solvePlaceholder:'Type your question here. Include all numbers and instructions...',solveHint:'Math, science and word problems — explained step by step.',solveBtn:'Solve step by step →',solveTitle:'Step-by-step answer',studyLabel:'Lesson or topic',studyPlaceholder:'Paste your lesson or write a topic you want to review...',studyHint:'Create a simple explanation and quick review questions.',studyBtn:'Make study guide ✦',studyTitle:'Your study guide',note:'Free AI • Uses free public services. Please do not enter personal or private information.',emptyText:'Please enter some text first.',copy:'Copy',copied:'Copied',noLive:'(AI service was unreachable — this is a basic offline result.)',thinking:'Thinking…',working:'Working…',translating:'Translating…',translated:'Translated',errAI:'Could not reach the free AI service right now. Please try again in a moment, or add a free key in ⚙ settings.',translateFail:'Translation service is unavailable. Please try again.',settings:'AI settings',provider:'AI provider',providerAuto:'Automatic (free, no key needed)',keyLabel:'API key (optional)',keyHelp:'Only needed if the automatic mode is busy. The key is saved only in this browser. Free keys: ',save:'Save',close:'Close',saved:'Saved ✓'},
+ar:{hero:'واجهة بسيطة واحدة. خمس أدوات ذكية.',sub:'اختر الأداة التي تحتاجها، وسيتغير شكل مساحة العمل بالكامل حسب اختيارك.',titles:{chat:'محادثة AI',translate:'ترجمة',summarize:'تلخيص',solve:'حل السؤال',study:'الدراسة'},pill:{chat:'الوضع البسيط',translate:'أداة اللغات',summarize:'تلخيص سريع',solve:'خطوة بخطوة',study:'وضع الدراسة'},empty:'✦<br><strong>كيف أقدر أساعدك؟</strong><br><span class="muted">اسأل سؤالًا أو اكتب ما تحتاج إليه.</span>',chatPlaceholder:'اكتب رسالتك إلى FUTIX...',send:'إرسال ↑',source:'اكتشاف اللغة',enter:'أدخل النص',translation:'ستظهر الترجمة هنا',ready:'جاهز للترجمة',translateHint:'اختر اللغات واكتب النص ثم اضغط ترجمة.',translateBtn:'ترجمة ←',summaryLabel:'النص المراد تلخيصه',summaryPlaceholder:'الصق الدرس أو المقال أو الملاحظات هنا...',summaryHint:'استخرج الأفكار الأساسية بدون التفاصيل الزائدة.',summaryBtn:'لخّص ✦',summaryTitle:'الملخص',solveLabel:'السؤال',solvePlaceholder:'اكتب السؤال هنا مع الأرقام والتعليمات كاملة...',solveHint:'مسائل الرياضيات والعلوم والمسائل الكلامية — بشرح خطوة بخطوة.',solveBtn:'حل بخطوات سهلة ←',solveTitle:'الحل خطوة بخطوة',studyLabel:'الدرس أو الموضوع',studyPlaceholder:'الصق الدرس أو اكتب موضوعًا تريد مراجعته...',studyHint:'أنشئ شرحًا مبسطًا وأسئلة سريعة للمراجعة.',studyBtn:'أنشئ دليل مذاكرة ✦',studyTitle:'دليل المذاكرة',note:'ذكاء اصطناعي مجاني • يستخدم خدمات عامة مجانية. من فضلك لا تكتب معلومات شخصية أو خاصة.',emptyText:'اكتب النص أولًا.',copy:'نسخ',copied:'تم النسخ',noLive:'(تعذّر الاتصال بخدمة الذكاء الاصطناعي — هذه نتيجة أساسية دون اتصال.)',thinking:'جارٍ التفكير…',working:'جارٍ العمل…',translating:'جارٍ الترجمة…',translated:'تمت الترجمة',errAI:'تعذّر الوصول إلى خدمة الذكاء الاصطناعي المجانية الآن. حاول مرة أخرى بعد قليل، أو أضف مفتاحًا مجانيًا من ⚙ الإعدادات.',translateFail:'خدمة الترجمة غير متاحة الآن. حاول مرة أخرى.',settings:'إعدادات الذكاء الاصطناعي',provider:'مزود الذكاء الاصطناعي',providerAuto:'تلقائي (مجاني دون مفتاح)',keyLabel:'مفتاح API (اختياري)',keyHelp:'ضروري فقط إذا كان الوضع التلقائي مشغولًا. يُحفظ المفتاح في هذا المتصفح فقط. مفاتيح مجانية: ',save:'حفظ',close:'إغلاق',saved:'تم الحفظ ✓'}};
+const languageNames={en:'English',ar:'Arabic',fr:'French',es:'Spanish',ur:'Urdu',hi:'Hindi',de:'German',tr:'Turkish'};
+function lang(){return $('uiLang').value}function t(){return words[lang()]}
+
+/* ---------- storage (safe) ---------- */
+const LS={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+
+/* ---------- text helpers ---------- */
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function fmt(s){ // safe mini-markdown: escape first, then bold / headings / bullets
+ return esc(s).replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>').replace(/^#{1,6}\s*(.+)$/gm,'<strong>$1</strong>').replace(/^\s*[*-]\s+/gm,'• ');
+}
+function byteLen(s){return new TextEncoder().encode(s).length}
+function splitChunks(text,max){
+ const parts=text.match(/[^.!?؟。\n]+[.!?؟。]*\s*|\n+/g)||[text];const out=[];let cur='';
+ for(let p of parts){
+  while(byteLen(p)>max){let cut=Math.floor(p.length/2);while(byteLen(p.slice(0,cut))>max)cut=Math.floor(cut*0.8);if(cur){out.push(cur);cur=''}out.push(p.slice(0,cut));p=p.slice(cut)}
+  if(byteLen(cur+p)>max){out.push(cur);cur=p}else cur+=p;
+ }
+ if(cur)out.push(cur);return out.filter(c=>c.trim());
+}
+
+/* ---------- AI engine: free by default, optional free key ---------- */
+async function timed(url,opts,ms=45000){const c=new AbortController();const id=setTimeout(()=>c.abort(),ms);try{return await fetch(url,{...opts,signal:c.signal})}finally{clearTimeout(id)}}
+async function callOpenAIStyle(url,key,model,messages){
+ const headers={'Content-Type':'application/json'};if(key)headers.Authorization='Bearer '+key;
+ const r=await timed(url,{method:'POST',headers,body:JSON.stringify({model,messages})});
+ if(!r.ok)throw new Error('HTTP '+r.status);
+ const j=await r.json();const txt=j&&j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content;
+ if(!txt||!txt.trim())throw new Error('empty response');return txt.trim();
+}
+async function callGemini(key,messages){
+ const sys=messages.filter(m=>m.role==='system').map(m=>m.content).join('\n');
+ const contents=messages.filter(m=>m.role!=='system').map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]}));
+ const body={contents};if(sys)body.systemInstruction={parts:[{text:sys}]};
+ const r=await timed('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+encodeURIComponent(key),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+ if(!r.ok)throw new Error('HTTP '+r.status);
+ const j=await r.json();const txt=j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts.map(p=>p.text||'').join('');
+ if(!txt||!txt.trim())throw new Error('empty response');return txt.trim();
+}
+async function askAI(messages){
+ const prov=LS.get('futix_provider')||'auto',key=(LS.get('futix_key')||'').trim();const tries=[];
+ if(key&&prov==='gemini')tries.push(()=>callGemini(key,messages));
+ if(key&&prov==='groq')tries.push(()=>callOpenAIStyle('https://api.groq.com/openai/v1/chat/completions',key,'llama-3.3-70b-versatile',messages));
+ if(key&&prov==='pollinations')tries.push(()=>callOpenAIStyle('https://gen.pollinations.ai/v1/chat/completions',key,'openai',messages));
+ tries.push(()=>callOpenAIStyle('https://text.pollinations.ai/openai',null,'openai',messages)); // free, no key
+ let last;for(const f of tries){try{return await f()}catch(e){last=e}}
+ throw last||new Error('AI unavailable');
+}
+function sysPrompt(task){return 'You are FUTIX, a friendly, accurate AI study assistant for students. '+task+' Always reply in the same language as the user\'s message unless asked otherwise. Keep it clear and well organised.'}
+
+/* ---------- UI language ---------- */
+function applyUiLanguage(){
+ const ar=lang()==='ar';document.documentElement.lang=lang();document.body.dir=ar?'rtl':'ltr';
+ $('heroTitle').textContent=t().hero;$('heroSub').textContent=t().sub;
+ document.querySelectorAll('[data-en]').forEach(el=>el.textContent=el.dataset[ar?'ar':'en']);
+ $('workspaceTitle').textContent=t().titles[mode];$('workspacePill').textContent=t().pill[mode];
+ const ce=$('chatEmpty');if(ce)ce.innerHTML=t().empty;$('chatInput').placeholder=t().chatPlaceholder;$('chatSend').textContent=t().send;
+ $('sourceLang').options[0].textContent=t().source;$('translateInput').placeholder=t().enter;$('translateOutput').placeholder=t().translation;if(!busy)$('translateStatus').textContent=t().ready;$('translateHint').textContent=t().translateHint;$('translateBtn').textContent=t().translateBtn;
+ $('summaryLabel').textContent=t().summaryLabel;$('summaryInput').placeholder=t().summaryPlaceholder;$('summaryHint').textContent=t().summaryHint;$('summaryBtn').textContent=t().summaryBtn;$('summaryOutputTitle').childNodes[0].textContent=t().summaryTitle+' ';
+ $('solveLabel').textContent=t().solveLabel;$('solveInput').placeholder=t().solvePlaceholder;$('solveHint').textContent=t().solveHint;$('solveBtn').textContent=t().solveBtn;$('solveOutputTitle').childNodes[0].textContent=t().solveTitle;
+ $('studyLabel').textContent=t().studyLabel;$('studyInput').placeholder=t().studyPlaceholder;$('studyHint').textContent=t().studyHint;$('studyBtn').textContent=t().studyBtn;$('studyOutputTitle').childNodes[0].textContent=t().studyTitle;
+ $('note').textContent=t().note;document.querySelectorAll('[data-copy]').forEach(b=>b.textContent=t().copy);
+ $('settingsTitle').textContent=t().settings;$('providerLabel').textContent=t().provider;$('optAuto').textContent=t().providerAuto;$('keyLabel').textContent=t().keyLabel;$('keyHelpText').textContent=t().keyHelp;$('settingsSave').textContent=t().save;$('settingsClose').textContent=t().close;$('settingsBtn').title=t().settings;
+}
+function setMode(next){
+ mode=next;document.body.dataset.mode=mode;
+ document.querySelectorAll('.mode-card').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
+ ['chat','translate','summarize','solve','study'].forEach(m=>$(m+'View').classList.toggle('hidden',m!==mode));
+ $('workspaceIcon').textContent={chat:'✦',translate:'文',summarize:'≡',solve:'∑',study:'▤'}[mode];
+ applyUiLanguage();
+}
+document.querySelectorAll('.mode-card').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode)));
+$('uiLang').addEventListener('change',()=>{LS.set('futix_ui',lang());applyUiLanguage();});
+$('resetBtn').addEventListener('click',()=>{
+ $('chatInput').value='';$('translateInput').value='';$('translateOutput').value='';$('summaryInput').value='';$('solveInput').value='';$('studyInput').value='';
+ ['summaryOutput','solveOutput','studyOutput'].forEach(id=>$(id).innerHTML='');
+ ['summaryOutput','solveOutput','studyOutput','summaryOutputTitle','solveOutputTitle','studyOutputTitle'].forEach(id=>$(id).classList.add('hidden'));
+ $('charCount').textContent='0';$('translateStatus').textContent=t().ready;chatHistory=[];renderChat();
+});
+
+/* ---------- generic "run an AI tool" helper ---------- */
+async function runTool(btnId,outId,titleId,messages,fallback){
+ if(busy)return;busy=true;const btn=$(btnId),orig=btn.textContent;btn.disabled=true;btn.textContent=t().working;
+ $(outId).classList.remove('hidden');$(titleId).classList.remove('hidden');$(outId).textContent=t().thinking;
+ try{const ans=await askAI(messages);$(outId).innerHTML=fmt(ans);}
+ catch(e){const fb=fallback?fallback():'';$(outId).innerHTML=fmt((fb?fb+'\n\n':'')+(fb?t().noLive:t().errAI));}
+ finally{busy=false;btn.disabled=false;btn.textContent=orig;}
+}
+function needText(outId,titleId,text){if(text)return false;$(outId).textContent=t().emptyText;$(outId).classList.remove('hidden');$(titleId).classList.remove('hidden');return true;}
+
+/* ---------- Translate: MyMemory (free) + AI fallback ---------- */
+async function myMemory(text,from,to){
+ const pair=(from==='auto'?'Autodetect':from)+'|'+to;const out=[];
+ for(const c of splitChunks(text,450)){
+  const r=await timed('https://api.mymemory.translated.net/get?q='+encodeURIComponent(c)+'&langpair='+encodeURIComponent(pair),{},20000);
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  const j=await r.json();const tr=j&&j.responseData&&j.responseData.translatedText;
+  if(Number(j.responseStatus)!==200||!tr||/MYMEMORY WARNING|INVALID/i.test(tr))throw new Error('mymemory');
+  out.push(tr);
+ }
+ return out.join(' ').replace(/&#39;/g,"'").replace(/&quot;/g,'"').replace(/&amp;/g,'&');
+}
+async function aiTranslate(text,from,to){
+ const src=from==='auto'?'the detected source language':languageNames[from];
+ return askAI([{role:'system',content:'You are a professional translator. Translate the user text from '+src+' into '+languageNames[to]+'. Output ONLY the translation, nothing else.'},{role:'user',content:text}]);
+}
+$('translateBtn').addEventListener('click',async()=>{
+ const text=$('translateInput').value.trim();if(!text){$('translateStatus').textContent=t().emptyText;return;}
+ if(busy)return;busy=true;const btn=$('translateBtn'),orig=btn.textContent;btn.disabled=true;
+ const from=$('sourceLang').value,to=$('targetLang').value;
+ $('translateStatus').textContent=t().translating;$('translateOutput').value='';
+ try{
+  if(from===to)throw new Error('same');
+  const order=from==='auto'?[()=>aiTranslate(text,from,to),()=>myMemory(text,from,to)]:[()=>myMemory(text,from,to),()=>aiTranslate(text,from,to)];
+  let res=null;for(const f of order){try{res=await f();if(res)break}catch(e){}}
+  if(!res)throw new Error('fail');
+  $('translateOutput').value=res;$('translateStatus').textContent=t().translated;
+ }catch(e){
+  if(e.message==='same'){$('translateOutput').value=text;$('translateStatus').textContent=t().translated;}
+  else $('translateStatus').textContent=t().translateFail;
+ }finally{busy=false;btn.disabled=false;}
+});
+$('swapLang').addEventListener('click',()=>{
+ const a=$('sourceLang'),b=$('targetLang');
+ if(a.value==='auto')a.value='en';
+ const temp=a.value;a.value=b.value;b.value=temp;
+ const inp=$('translateInput'),out=$('translateOutput'),v=inp.value;inp.value=out.value;out.value=v;
+ $('charCount').textContent=inp.value.length;
+});
+$('translateInput').addEventListener('input',()=> $('charCount').textContent=$('translateInput').value.length);
+
+/* ---------- Summarize ---------- */
+function summarizeText(text){ // offline fallback
+ const cleaned=text.replace(/\s+/g,' ').trim();if(!cleaned)return '';
+ const sentences=cleaned.match(/[^.!?؟。]+[.!?؟。]?/g)||[cleaned];
+ const useful=sentences.map(s=>s.trim()).filter(Boolean);
+ if(useful.length<=2)return useful.join(' ');
+ const scored=useful.map((s,i)=>({s,i,score:(s.match(/\b(is|are|because|important|main|first|therefore|causes|means|include|includes|يعد|تعد|لأن|لذلك|أهم|يشمل|يعني|بسبب|هو|هي)\b/gi)||[]).length+(i===0?1:0)}));
+ return scored.sort((a,b)=>b.score-a.score).slice(0,Math.min(3,Math.ceil(useful.length/3))).sort((a,b)=>a.i-b.i).map(x=>x.s).join(' ');
+}
+$('summaryBtn').addEventListener('click',()=>{
+ const text=$('summaryInput').value.trim();if(needText('summaryOutput','summaryOutputTitle',text))return;
+ runTool('summaryBtn','summaryOutput','summaryOutputTitle',[{role:'system',content:sysPrompt('Summarize the text the user gives you. Keep only the key ideas, as a short intro sentence followed by concise bullet points.')},{role:'user',content:text.slice(0,12000)}],()=>summarizeText(text));
+});
+
+/* ---------- Solve: AI steps + exact local math check ---------- */
+function localMath(text){
+ let s=text.replace(/[=?؟]+\s*$/,'').replace(/×/g,'*').replace(/÷/g,'/').replace(/\^/g,'**').replace(/,/g,'').trim();
+ if(!/^[0-9+\-*/().%\s]+$/.test(s)||!/[0-9]/.test(s)||!/[+\-*/%]/.test(s))return null;
+ try{const v=Function('"use strict";return ('+s+')')();return Number.isFinite(v)?Number(v.toFixed(10)):null}catch(e){return null}
+}
+function makeSteps(text){ // offline fallback
+ const v=localMath(text);
+ if(v!==null)return (lang()==='ar'?'الناتج: ':'Result: ')+v;
+ return lang()==='ar'?'لم أتعرف على مسألة حسابية بسيطة. جرّب كتابة العملية بهذا الشكل: 12 + 8':'I could not detect a simple arithmetic expression. Try one like: 12 + 8';
+}
+$('solveBtn').addEventListener('click',async()=>{
+ const text=$('solveInput').value.trim();if(needText('solveOutput','solveOutputTitle',text))return;
+ await runTool('solveBtn','solveOutput','solveOutputTitle',[{role:'system',content:sysPrompt('Solve the student\'s problem step by step. Use short numbered steps, explain each step simply, and finish with a clearly marked final answer. Use plain text for math (e.g. 3 x 4 = 12), not LaTeX.')},{role:'user',content:text}],()=>makeSteps(text));
+ const v=localMath(text);if(v!==null&&!$('solveOutput').textContent.includes(t().noLive)){$('solveOutput').innerHTML+='<br><br><em>'+esc((lang()==='ar'?'تحقق سريع (محسوب في متصفحك): ':'Quick check (calculated in your browser): ')+v)+'</em>';}
+});
+
+/* ---------- Study ---------- */
+$('studyBtn').addEventListener('click',()=>{
+ const text=$('studyInput').value.trim();if(needText('studyOutput','studyOutputTitle',text))return;
+ runTool('studyBtn','studyOutput','studyOutputTitle',[{role:'system',content:sysPrompt('Create a study guide for the lesson or topic the user gives. Include: 1) a simple explanation, 2) key points to remember, 3) five quick review questions with short answers.')},{role:'user',content:text.slice(0,12000)}],()=>{
+  const s=summarizeText(text);return (lang()==='ar'?'شرح مبسط:\n':'Simple explanation:\n')+s+'\n\n'+(lang()==='ar'?'أسئلة للمراجعة:\n1. ما الفكرة الرئيسية؟\n2. اذكر معلومة مهمة من الدرس.\n3. اشرح الموضوع بكلماتك.':'Quick review:\n1. What is the main idea?\n2. Name one important fact from the lesson.\n3. Explain the topic in your own words.');
+ });
+});
+
+/* ---------- Chat ---------- */
+function renderChat(){
+ const el=$('chatMessages');el.innerHTML='';
+ if(!chatHistory.length){const d=document.createElement('div');d.className='empty-chat';d.id='chatEmpty';d.innerHTML=t().empty;el.appendChild(d);return;}
+ chatHistory.forEach(m=>{const row=document.createElement('div');row.className='chat-row '+m.role;const av=document.createElement('div');av.className='chat-avatar';av.textContent=m.role==='user'?'Y':'✦';const bubble=document.createElement('div');bubble.className='chat-bubble';if(m.role==='user')bubble.textContent=m.text;else bubble.innerHTML=fmt(m.text);row.append(av,bubble);el.appendChild(row);});el.scrollTop=el.scrollHeight;
+}
+async function sendChat(){
+ const text=$('chatInput').value.trim();if(!text||busy)return;busy=true;
+ chatHistory.push({role:'user',text});$('chatInput').value='';const pending={role:'assistant',text:t().thinking};chatHistory.push(pending);renderChat();$('chatSend').disabled=true;
+ const msgs=[{role:'system',content:sysPrompt('Answer the student\'s questions helpfully and concisely.')}].concat(chatHistory.slice(0,-1).slice(-20).map(m=>({role:m.role,content:m.text})));
+ try{pending.text=await askAI(msgs);}catch(e){pending.text=t().errAI;}
+ busy=false;$('chatSend').disabled=false;renderChat();$('chatInput').focus();
+}
+$('chatSend').addEventListener('click',sendChat);
+$('chatInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();}});
+
+/* ---------- Copy buttons ---------- */
+document.querySelectorAll('[data-copy]').forEach(b=>b.addEventListener('click',()=>{const el=$(b.dataset.copy);try{navigator.clipboard&&navigator.clipboard.writeText(el.innerText||el.textContent)}catch(e){}b.textContent=t().copied;setTimeout(()=>b.textContent=t().copy,1000)}));
+
+/* ---------- Settings dialog ---------- */
+$('settingsBtn').addEventListener('click',()=>{$('providerSel').value=LS.get('futix_provider')||'auto';$('keyInput').value=LS.get('futix_key')||'';$('settingsDlg').showModal();});
+$('settingsClose').addEventListener('click',()=>$('settingsDlg').close());
+$('settingsSave').addEventListener('click',()=>{LS.set('futix_provider',$('providerSel').value);LS.set('futix_key',$('keyInput').value.trim());$('settingsSave').textContent=t().saved;setTimeout(()=>{$('settingsSave').textContent=t().save;$('settingsDlg').close();},700);});
+
+/* ---------- start ---------- */
+const savedUi=LS.get('futix_ui');if(savedUi&&words[savedUi])$('uiLang').value=savedUi;
+applyUiLanguage();renderChat();
+</script>
+
+</body>
+</html>
